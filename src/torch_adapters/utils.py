@@ -3,7 +3,7 @@ from typing import List
 
 import torch
 
-from adapters.lora import LoRA
+from .adapters.lora import LoRA
 
 
 def add_lora(model: torch.nn.Module, layers_names: List[str]) -> torch.nn.Module:
