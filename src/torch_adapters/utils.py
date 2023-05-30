@@ -9,6 +9,9 @@ from .adapters.lora import LoRA
 def add_lora(model: torch.nn.Module, layers_names: List[str]) -> torch.nn.Module:
     """
 
+    Replace in-place the linear layers named in layers_names with a LoRA layer
+    having the same weight and bias parameters.
+
     :param model:
     :param layers_names:
     :return:
