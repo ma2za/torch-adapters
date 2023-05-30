@@ -2,6 +2,19 @@ import torch
 from torch import nn, Tensor
 
 
+def prefix_attention_mask(attention_mask: Tensor, prefix_length: int) -> Tensor:
+    """
+
+    :param attention_mask:
+    :param prefix_length:
+    :return:
+    """
+    prefix_mask = torch.ones((attention_mask.shape[0], prefix_length),
+                             dtype=attention_mask.dtype,
+                             device=attention_mask.device)
+    return torch.cat([prefix_mask, attention_mask], dim=-1)
+
+
 class PrefixTokenTypeEmbedding(nn.Embedding):
     def __init__(self, src: nn.Embedding, prefix_length: int):
         super().__init__(num_embeddings=src.num_embeddings,
@@ -13,7 +26,8 @@ class PrefixTokenTypeEmbedding(nn.Embedding):
         self.prefix_length = prefix_length
 
     def forward(self, input: Tensor) -> Tensor:
-        extended_input = input.expand(-1, input.shape[-1] + self.prefix_length)
+        extended_input = torch.cat([input[:, 0].unsqueeze(1).expand(-1, self.prefix_length), input],
+                                   dim=1)
         return super().forward(extended_input)
 
 
@@ -28,7 +42,11 @@ class PrefixAbsolutePositionalEmbedding(nn.Embedding):
         self.prefix_length = prefix_length
 
     def forward(self, input: Tensor) -> Tensor:
-        extended_input = input.expand(-1, input.shape[-1] + self.prefix_length)
+        prefix_ids = torch.arange(1, 1 + self.prefix_length, dtype=torch.long, device=input.device)
+        prefix_ids = prefix_ids.unsqueeze(0).expand(input.shape[0], -1)
+        mask = input.ne(self.padding_idx).int()
+        incremental_indices = (input - self.padding_idx + prefix_ids.max()) * mask
+        extended_input = torch.cat([prefix_ids, incremental_indices], dim=1) + self.padding_idx
         return super().forward(extended_input)
 
 
@@ -59,7 +77,7 @@ class PrefixTuningEmbedding(nn.Embedding):
             nn.Linear(hidden_rank, self.embedding_dim),
         )
 
-    def forward(self, batch_size):
-        input_ids = torch.arange(self.prefix_length, dtype=torch.long, device=self.embedding.device)
-        input_ids = input_ids.unsqueeze(0).expand(batch_size, -1)
-        return self.trainable_matrix(input_ids)
+    def forward(self, input: Tensor) -> Tensor:
+        prefix_ids = torch.arange(self.prefix_length, dtype=torch.long, device=input.device)
+        prefix_ids = prefix_ids.unsqueeze(0).expand(input.shape[0], -1)
+        return torch.cat([self.mlp(self.trainable_matrix(prefix_ids)), self.weight[input]], dim=1)
