@@ -16,23 +16,22 @@ class LoRA(nn.Linear):
     """
 
     def __init__(self,
-                 in_features: int,
-                 out_features: int,
-                 weight: Tensor,
-                 bias: Tensor = None,
+                 src: nn.Linear,
                  alpha: int = 8,
                  r: int = 8):
-        super().__init__(in_features, out_features, bias is not None)
+        super().__init__(src.in_features, src.out_features)
+
+        # TODO maybe create utility method for this repeated code
+        for attr in vars(src).keys():
+            setattr(self, attr, getattr(src, attr))
+
         self.delta_weight = torch.nn.Sequential(OrderedDict([
-            ("A", nn.Linear(in_features, r, bias=False)),
-            ("B", nn.Linear(r, out_features, bias=False))
+            ("A", nn.Linear(self.in_features, r, bias=False)),
+            ("B", nn.Linear(r, self.out_features, bias=False))
         ]))
 
         self.alpha = alpha
         self.r = r
-
-        self.weight = weight
-        self.bias = bias
 
         init.zeros_(self.delta_weight.B.weight)
         init.normal_(self.delta_weight.A.weight)
