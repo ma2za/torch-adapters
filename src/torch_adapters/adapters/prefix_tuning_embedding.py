@@ -1,6 +1,8 @@
 import torch
 from torch import nn, Tensor
 
+from torch_adapters.adapters.mixin import AdapterMixin
+
 
 def prefix_attention_mask(attention_mask: Tensor, prefix_length: int) -> Tensor:
     """
@@ -15,30 +17,26 @@ def prefix_attention_mask(attention_mask: Tensor, prefix_length: int) -> Tensor:
     return torch.cat([prefix_mask, attention_mask], dim=-1)
 
 
-class PrefixTokenTypeEmbedding(nn.Embedding):
+class PrefixTokenTypeEmbedding(nn.Embedding, AdapterMixin):
     def __init__(self, src: nn.Embedding, prefix_length: int):
         super().__init__(num_embeddings=src.num_embeddings,
                          embedding_dim=src.embedding_dim)
 
-        for attr in vars(src).keys():
-            setattr(self, attr, getattr(src, attr))
-
+        self.copy_attributes_from_source(src)
         self.prefix_length = prefix_length
 
     def forward(self, input: Tensor) -> Tensor:
-        extended_input = torch.cat([input[:, 0].unsqueeze(1).expand(-1, self.prefix_length), input],
-                                   dim=1)
+        prefix = input[:, 0].unsqueeze(1).expand(-1, self.prefix_length)
+        extended_input = torch.cat([prefix, input], dim=1)
         return super().forward(extended_input)
 
 
-class PrefixAbsolutePositionalEmbedding(nn.Embedding):
+class PrefixAbsolutePositionalEmbedding(nn.Embedding, AdapterMixin):
     def __init__(self, src: nn.Embedding, prefix_length: int):
         super().__init__(num_embeddings=src.num_embeddings,
                          embedding_dim=src.embedding_dim)
 
-        for attr in vars(src).keys():
-            setattr(self, attr, getattr(src, attr))
-
+        self.copy_attributes_from_source(src)
         self.prefix_length = prefix_length
 
     def forward(self, input: Tensor) -> Tensor:
@@ -50,7 +48,7 @@ class PrefixAbsolutePositionalEmbedding(nn.Embedding):
         return super().forward(extended_input)
 
 
-class PrefixTuningEmbedding(nn.Embedding):
+class PrefixTuningEmbedding(nn.Embedding, AdapterMixin):
     """
 
     Prefix-Tuning: Optimizing Continuous Prompts for Generation
@@ -66,12 +64,11 @@ class PrefixTuningEmbedding(nn.Embedding):
         super().__init__(num_embeddings=src.num_embeddings,
                          embedding_dim=src.embedding_dim)
 
-        for attr in vars(src).keys():
-            setattr(self, attr, getattr(src, attr))
-
+        self.copy_attributes_from_source(src)
         self.prefix_length = prefix_length
-        self.trainable_matrix = nn.Embedding(self.prefix_length, self.embedding_dim)
-        self.mlp = nn.Sequential(
+
+        self.prefix_embedding = nn.Embedding(self.prefix_length, self.embedding_dim)
+        self.prefix_mlp = nn.Sequential(
             nn.Linear(self.embedding_dim, hidden_rank),
             nn.Tanh(),
             nn.Linear(hidden_rank, self.embedding_dim),
@@ -80,4 +77,5 @@ class PrefixTuningEmbedding(nn.Embedding):
     def forward(self, input: Tensor) -> Tensor:
         prefix_ids = torch.arange(self.prefix_length, dtype=torch.long, device=input.device)
         prefix_ids = prefix_ids.unsqueeze(0).expand(input.shape[0], -1)
-        return torch.cat([self.mlp(self.trainable_matrix(prefix_ids)), self.weight[input]], dim=1)
+        prefix = self.prefix_mlp(self.prefix_embedding(prefix_ids))
+        return torch.cat([prefix, self.weight[input]], dim=1)

@@ -2,7 +2,7 @@ from transformers import RobertaModel
 from transformers import RobertaTokenizer
 
 from torch_adapters.adapters.prefix_tuning_embedding import prefix_attention_mask
-from torch_adapters.utils import add_prefix_tuning_embedding
+from torch_adapters.utils import add_prefix_tuning_embedding, train_adapters
 
 # TODO move outside or in an actual test case
 
@@ -19,6 +19,6 @@ add_prefix_tuning_embedding(model, {"word_embeddings": "word",
                             {"prefix_length": 30, "hidden_rank": 512})
 
 inputs["attention_mask"] = prefix_attention_mask(inputs["attention_mask"], 30)
-
+train_adapters(model, ["prefix"])
 model(**inputs)
 print()

@@ -9,6 +9,11 @@ from .adapters.prefix_tuning_embedding import PrefixTuningEmbedding, PrefixToken
     PrefixAbsolutePositionalEmbedding
 
 
+# TODO group in una utility class
+
+# TODO consider if unify in one add method with configuration
+
+
 def add_lora(model: nn.Module, layers_names: List[str], config: Dict) -> torch.nn.Module:
     """
 
@@ -62,3 +67,8 @@ def add_prefix_tuning_embedding(model: nn.Module, embeddings: Dict, config: Dict
                 raise Exception
             module.__setattr__(attr_name, extended_embedding)
     return model
+
+
+def train_adapters(model: nn.Module, names: List[str]):
+    for name, param in model.named_parameters():
+        param.requires_grad_(any([i in name for i in names]))
