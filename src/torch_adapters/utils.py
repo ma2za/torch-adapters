@@ -5,8 +5,8 @@ import torch
 from torch import nn
 
 from .adapters.lora import LoRA
-from .adapters.prefix_tuning_embedding import PrefixTuningEmbedding, PrefixTokenTypeEmbedding, \
-    PrefixAbsolutePositionalEmbedding
+from .adapters.prompt_tuning import PromptTuningEmbedding, PromptTokenTypeEmbedding, \
+    PromptAbsolutePositionalEmbedding
 
 
 # TODO group in una utility class
@@ -41,7 +41,7 @@ def add_lora(model: nn.Module, layers_names: List[str], config: Dict) -> torch.n
     return model
 
 
-def add_prefix_tuning_embedding(model: nn.Module, embeddings: Dict, config: Dict) -> nn.Module:
+def add_prompt_tuning(model: nn.Module, embeddings: Dict, config: Dict) -> nn.Module:
     for name, module in model.named_modules():
         if any([i in name for i in embeddings.keys()]):
             module_name, attr_name = name.rsplit(".", 1)
@@ -52,16 +52,15 @@ def add_prefix_tuning_embedding(model: nn.Module, embeddings: Dict, config: Dict
             embedding_type = embeddings.get(attr_name)
             extended_embedding = None
             if embedding_type == "word":
-                extended_embedding = PrefixTuningEmbedding(src=attr,
-                                                           prefix_length=config.get("prefix_length", 30),
-                                                           hidden_rank=config.get("hidden_rank"))
+                extended_embedding = PromptTuningEmbedding(src=attr,
+                                                           prompt_length=config.get("prompt_length", 30))
             elif embedding_type == "token_type":
-                extended_embedding = PrefixTokenTypeEmbedding(src=attr,
-                                                              prefix_length=config.get("prefix_length", 30))
+                extended_embedding = PromptTokenTypeEmbedding(src=attr,
+                                                              prompt_length=config.get("prompt_length", 30))
             elif embedding_type == "position":
                 # TODO check relative embeddings
-                extended_embedding = PrefixAbsolutePositionalEmbedding(src=attr,
-                                                                       prefix_length=config.get("prefix_length", 30))
+                extended_embedding = PromptAbsolutePositionalEmbedding(src=attr,
+                                                                       prompt_length=config.get("prompt_length", 30))
             if extended_embedding is None:
                 # TODO replace with custom exception
                 raise Exception
