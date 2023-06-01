@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "torch-adapters"
-version = "0.0.3"
+version = "0.0.4"
 description = "Small Library of Torch Adaptation modules"
 authors = ["ma2za <mazzapaolo2019@gmail.com>"]
 license = "MIT"

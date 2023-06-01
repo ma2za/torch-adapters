@@ -1,4 +1,4 @@
-from transformers import RobertaForSequenceClassification
+from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import RobertaTokenizer
 
 from torch_adapters.adapters.prompt_tuning import prompt_attention_mask
@@ -6,7 +6,9 @@ from torch_adapters.utils import add_prompt_tuning, train_adapters, add_lora
 
 # TODO move outside or in an actual test case
 
-model = RobertaForSequenceClassification.from_pretrained("roberta-base")
+config = RobertaConfig.from_pretrained("roberta-base", num_labels=6)
+
+model = RobertaForSequenceClassification.from_pretrained("roberta-base", config=config)
 
 tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 
@@ -20,7 +22,8 @@ add_prompt_tuning(model, {"word_embeddings": "word",
                           "position_embeddings": "position"},
                   {"prompt_length": 30})
 
+train_adapters(model, ["lora", "classifier", "prompt"])
+
 inputs["attention_mask"] = prompt_attention_mask(inputs["attention_mask"], 30)
-train_adapters(model, ["prompt"])
 model(**inputs)
 print()
