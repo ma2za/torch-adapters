@@ -6,6 +6,12 @@
 
 Small Library of Torch Adaptation modules
 
+### Supported Methods
+
+- [X] LoRA
+- [X] Prompt Tuning
+- [X] Bottleneck Adapter
+
 # Installation
 
 You can install torch-adapters using:
@@ -14,3 +20,4 @@ You can install torch-adapters using:
 
 # Usage
 
+    $ add_lora(model, ["key", "value"], {"alpha": 8, "r": 8})
