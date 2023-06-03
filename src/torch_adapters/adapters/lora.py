@@ -36,5 +36,14 @@ class LoRA(nn.Linear, AdapterMixin):
         init.zeros_(self.lora_weight.B.weight)
         init.normal_(self.lora_weight.A.weight)
 
+    def merge(self) -> nn.Linear:
+        # TODO add copy of other attributes
+        merged_layer = nn.Linear(self.in_features, self.out_features)
+        merged_weight = self.weight.data + (self.alpha / self.r) * (
+                self.lora_weight.B.weight.data @ self.lora_weight.A.weight.data)
+        merged_layer.weight.data = merged_weight.detach().clone().to(self.weight.device).type(self.weight.dtype)
+        merged_layer.bias.data = self.bias.data.detach().clone()
+        return merged_layer
+
     def forward(self, input_ids: Tensor) -> Tensor:
         return super().forward(input_ids) + self.lora_weight(input_ids) * (self.alpha / self.r)

@@ -45,6 +45,15 @@ def add_lora(model: nn.Module, layers_names: List[str], config: Dict) -> torch.n
     return model
 
 
+def merge_lora(model, layers_names):
+    for name, module in model.named_modules():
+        if isinstance(module, LoRA):
+            module_name, attr_name = name.rsplit(".", 1)
+            parent_module: nn.Module = attrgetter(module_name)(model)
+            parent_module.__setattr__(attr_name, module.merge())
+    return model
+
+
 def add_prompt_tuning(model: nn.Module, embeddings: Dict, config: Dict) -> nn.Module:
     for name, module in model.named_modules():
         if any([i in name for i in embeddings.keys()]):
