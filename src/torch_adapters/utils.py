@@ -4,14 +4,37 @@ from typing import List, Dict
 import torch
 from torch import nn
 
+from .adapters.adapter import Adapter
 from .adapters.lora import LoRA
 from .adapters.prompt_tuning import PromptTuningEmbedding, PromptTokenTypeEmbedding, \
     PromptAbsolutePositionalEmbedding
 
 
-# TODO group in una utility class
+# TODO group in a utility class
 
 # TODO consider if unify in one add method with configuration
+
+
+def add_adapter(model: nn.Module, layers_names: List[str], config: Dict) -> torch.nn.Module:
+    """
+
+    :param model:
+    :param layers_names:
+    :param config:
+    :return:
+    """
+    for name, module in model.named_modules():
+        if any([i in name for i in layers_names]):
+            module_name, attr_name = name.rsplit(".", 1)
+            module: nn.Module = attrgetter(module_name)(model)
+            attr: nn.Module = attrgetter(name)(model)
+
+            # TODO specialize exception
+            if not isinstance(attr, nn.Linear):
+                raise Exception
+
+            module.__setattr__(attr_name, Adapter(attr, adapter_size=config.get("adapter_size", 64)))
+    return model
 
 
 def add_lora(model: nn.Module, layers_names: List[str], config: Dict) -> torch.nn.Module:
