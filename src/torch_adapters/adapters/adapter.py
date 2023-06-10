@@ -1,13 +1,14 @@
 from collections import OrderedDict
 
-import torch.nn.init
-from torch import nn, Tensor
-from torch.nn import GELU
+from torch import Tensor
+from torch.nn import GELU, init, Linear, Module, Sequential
 
 from torch_adapters.adapters.mixin import AdapterMixin
 
+__all__ = ["Adapter"]
 
-class Adapter(AdapterMixin, nn.Module):
+
+class Adapter(AdapterMixin, Module):
     """
 
     Parameter-Efficient Transfer Learning for NLP
@@ -16,21 +17,25 @@ class Adapter(AdapterMixin, nn.Module):
 
     """
 
-    def __init__(self,
-                 src: nn.Linear,
-                 adapter_size: int):
+    def __init__(self, src: Linear, adapter_size: int):
         super().__init__()
         self.src = src
-        self.adapter = nn.Sequential(OrderedDict([
-            ("A", nn.Linear(src.out_features, adapter_size, bias=True)),
-            ("act", GELU()),
-            ("B", nn.Linear(adapter_size, src.out_features, bias=True))
-        ]))
+        self.adapter = Sequential(
+            OrderedDict(
+                [
+                    ("A", Linear(src.out_features, adapter_size, bias=True)),
+                    ("act", GELU()),
+                    ("B", Linear(adapter_size, src.out_features, bias=True)),
+                ]
+            )
+        )
+
+        self.reset_parameters()
 
     def reset_parameters(self):
         # TODO check if gaussian init is the standard
         for param in self.adapter.parameters():
-            torch.nn.init.zeros_(param)
+            init.zeros_(param)
 
     def forward(self, input: Tensor) -> Tensor:
         output = self.src(input)

@@ -1,7 +1,5 @@
 # Torch Adapters
 
-> <em>"During a gold rush, sell shovels."</em>
-
 # Introduction
 
 Small Library of Torch Adaptation modules
@@ -11,6 +9,8 @@ Small Library of Torch Adaptation modules
 - [X] LoRA
 - [X] Prompt Tuning
 - [X] Bottleneck Adapter
+- [ ] Prefix Tuning
+- [ ] P-Tuning
 
 # Installation
 
@@ -20,4 +20,10 @@ You can install torch-adapters using:
 
 # Usage
 
-    $ add_lora(model, ["key", "value"], {"alpha": 8, "r": 8})
+```python
+from torch_adapters.utils import add_lora
+
+# Add lora to the model
+add_lora(model, ["key", "value"], {"alpha": 8, "r": 8})
+```
+
