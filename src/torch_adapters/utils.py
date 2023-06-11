@@ -6,6 +6,7 @@ from torch import nn
 
 from .adapters.adapter import Adapter
 from .adapters.lora import LoRA
+from .adapters.prefix_tuning import PrefixTuning
 from .adapters.prompt_tuning import (
     PromptTuningEmbedding,
     PromptTokenTypeEmbedding,
@@ -16,6 +17,34 @@ from .adapters.prompt_tuning import (
 # TODO group in a utility class
 
 # TODO consider if unify in one add method with configuration
+
+
+def add_prefix_tuning(
+    model: nn.Module, layers_names: List[str], config: Dict
+) -> torch.nn.Module:
+    for name, module in model.named_modules():
+        if any([i in name for i in layers_names]):
+            module_name, attr_name = name.rsplit(".", 1)
+            module: nn.Module = attrgetter(module_name)(model)
+            if attr_name not in layers_names:
+                continue
+            attr: nn.Module = attrgetter(name)(model)
+            module.__setattr__(
+                attr_name,
+                PrefixTuning(
+                    attr,
+                    prefix_size=config.get("prefix_size", 64),
+                    hidden_size=config.get("prefix_size", 768),
+                ),
+            )
+    return model
+
+
+def drop_prefix_tuning_reparametrization(model: nn.Module):
+    for name, module in model.named_modules():
+        if isinstance(module, PrefixTuning):
+            module.drop()
+    return model
 
 
 def add_adapter(
@@ -76,7 +105,7 @@ def add_lora(
     return model
 
 
-def merge_lora(model, layers_names):
+def merge_lora(model):
     for name, module in model.named_modules():
         if isinstance(module, LoRA):
             module_name, attr_name = name.rsplit(".", 1)
