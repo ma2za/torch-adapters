@@ -20,7 +20,7 @@ from .adapters.prompt_tuning import (
 
 
 def add_prefix_tuning(
-    model: nn.Module, layers_names: List[str], config: Dict
+        model: nn.Module, layers_names: List[str], config: Dict
 ) -> torch.nn.Module:
     for name, module in model.named_modules():
         if any([i in name for i in layers_names]):
@@ -48,7 +48,7 @@ def drop_prefix_tuning_reparametrization(model: nn.Module):
 
 
 def add_adapter(
-    model: nn.Module, layers_names: List[str], config: Dict
+        model: nn.Module, layers_names: List[str], config: Dict
 ) -> torch.nn.Module:
     """
 
@@ -74,7 +74,7 @@ def add_adapter(
 
 
 def add_lora(
-    model: nn.Module, layers_names: List[str], config: Dict
+        model: nn.Module, layers_names: List[str], config: Dict
 ) -> torch.nn.Module:
     """
 
@@ -100,7 +100,10 @@ def add_lora(
 
             module.__setattr__(
                 attr_name,
-                LoRA(attr, alpha=config.get("alpha", 8), r=config.get("r", 8)),
+                LoRA(attr,
+                     alpha=config.get("alpha", 8),
+                     r=config.get("r", 8),
+                     dropout=config.get("dropout", 0.0)),
             )
     return model
 

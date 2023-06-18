@@ -9,7 +9,7 @@ Small Library of Torch Adaptation modules
 - [X] LoRA
 - [X] Prompt Tuning
 - [X] Bottleneck Adapter
-- [ ] Prefix Tuning
+- [X] Prefix Tuning
 - [ ] P-Tuning
 
 # Installation
