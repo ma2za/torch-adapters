@@ -10,6 +10,7 @@ Small Library of Torch Adaptation modules
 - [X] Prompt Tuning
 - [X] Bottleneck Adapter
 - [X] Prefix Tuning
+- [X] IA3 (single task)
 - [ ] P-Tuning
 
 # Installation

@@ -5,6 +5,7 @@ import torch
 from torch import nn
 
 from .adapters.adapter import Adapter
+from .adapters.ia3 import IA3
 from .adapters.lora import LoRA
 from .adapters.prefix_tuning import PrefixTuning
 from .adapters.prompt_tuning import (
@@ -70,6 +71,41 @@ def add_adapter(
             module.__setattr__(
                 attr_name, Adapter(attr, adapter_size=config.get("adapter_size", 64))
             )
+    return model
+
+
+def add_ia3(model: nn.Module, layers_names: List[str]) -> torch.nn.Module:
+    """
+
+    :param model:
+    :param layers_names:
+    :return:
+    """
+    for name, module in model.named_modules():
+        if any([i in name for i in layers_names]):
+            module_name, attr_name = name.rsplit(".", 1)
+            if attr_name not in layers_names:
+                continue
+            module: nn.Module = attrgetter(module_name)(model)
+            attr: nn.Linear = attrgetter(name)(model)
+
+            # TODO specialize exception
+            if not isinstance(attr, nn.Linear):
+                raise Exception
+
+            module.__setattr__(
+                attr_name,
+                IA3(attr),
+            )
+        return model
+
+
+def merge_ia3(model):
+    for name, module in model.named_modules():
+        if isinstance(module, IA3):
+            module_name, attr_name = name.rsplit(".", 1)
+            parent_module: nn.Module = attrgetter(module_name)(model)
+            parent_module.__setattr__(attr_name, module.merge())
     return model
 
 
