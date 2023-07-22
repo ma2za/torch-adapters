@@ -1,3 +1,4 @@
+import re
 from operator import attrgetter
 from typing import List, Dict
 
@@ -74,15 +75,16 @@ def add_adapter(
     return model
 
 
-def add_ia3(model: nn.Module, layers_names: List[str]) -> torch.nn.Module:
+def add_ia3(model: nn.Module, layers_names: Dict[str, bool]) -> torch.nn.Module:
     """
 
     :param model:
-    :param layers_names:
+    :param layers_names: if it set to True than it first scales and then it
     :return:
     """
     for name, module in model.named_modules():
-        if any([i in name for i in layers_names]):
+        print(name)
+        if any([re.search(i, name) for i in layers_names.keys()]):
             module_name, attr_name = name.rsplit(".", 1)
             if attr_name not in layers_names:
                 continue
@@ -97,7 +99,7 @@ def add_ia3(model: nn.Module, layers_names: List[str]) -> torch.nn.Module:
                 attr_name,
                 IA3(attr),
             )
-        return model
+    return model
 
 
 def merge_ia3(model):
@@ -123,6 +125,7 @@ def add_lora(
     :return:
     """
     for name, module in model.named_modules():
+        # TODO replace with regex
         if any([i in name for i in layers_names]):
             module_name, attr_name = name.rsplit(".", 1)
             if attr_name not in layers_names:
