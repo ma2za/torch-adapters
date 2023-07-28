@@ -7,7 +7,6 @@ from torch import nn
 
 from .adapters.adapter import Adapter
 from .adapters.ia3 import IA3
-from .adapters.lora import LoRA
 from .adapters.prefix_tuning import PrefixTuning
 from .adapters.prompt_tuning import (
     PromptTuningEmbedding,
@@ -105,51 +104,6 @@ def add_ia3(model: nn.Module, layers_names: Dict[str, bool]) -> torch.nn.Module:
 def merge_ia3(model):
     for name, module in model.named_modules():
         if isinstance(module, IA3):
-            module_name, attr_name = name.rsplit(".", 1)
-            parent_module: nn.Module = attrgetter(module_name)(model)
-            parent_module.__setattr__(attr_name, module.merge())
-    return model
-
-
-def add_lora(
-        model: nn.Module, layers_names: List[str], config: Dict
-) -> torch.nn.Module:
-    """
-
-    Replace in-place the linear layers named in layers_names with a LoRA layer
-    having the same weight and bias parameters.
-
-    :param model:
-    :param layers_names:
-    :param config:
-    :return:
-    """
-    for name, module in model.named_modules():
-        # TODO replace with regex
-        if any([i in name for i in layers_names]):
-            module_name, attr_name = name.rsplit(".", 1)
-            if attr_name not in layers_names:
-                continue
-            module: nn.Module = attrgetter(module_name)(model)
-            attr: nn.Linear = attrgetter(name)(model)
-
-            # TODO specialize exception
-            if not isinstance(attr, nn.Linear):
-                raise Exception
-
-            module.__setattr__(
-                attr_name,
-                LoRA(attr,
-                     alpha=config.get("alpha", 8),
-                     r=config.get("r", 8),
-                     dropout=config.get("dropout", 0.0)),
-            )
-    return model
-
-
-def merge_lora(model):
-    for name, module in model.named_modules():
-        if isinstance(module, LoRA):
             module_name, attr_name = name.rsplit(".", 1)
             parent_module: nn.Module = attrgetter(module_name)(model)
             parent_module.__setattr__(attr_name, module.merge())
